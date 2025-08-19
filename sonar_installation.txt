@@ -1,0 +1,49 @@
+#!/bin/bash
+
+sudo apt update && sudo apt -y upgrade
+sudo apt -y install unzip wget gnupg2 software-properties-common
+sudo apt -y install openjdk-17-jdk
+java -version
+sudo apt -y install postgresql postgresql-contrib
+sudo systemctl enable --now postgresql
+sudo -u postgres psql -c "CREATE USER sonar WITH ENCRYPTED PASSWORD 'StrongPass#123';"
+sudo -u postgres psql -c "CREATE DATABASE sonarqube OWNER sonar;"
+echo 'vm.max_map_count=524288' | sudo tee -a /etc/sysctl.conf
+echo 'fs.file-max=131072' | sudo tee -a /etc/sysctl.conf
+sudo sysctl -p
+sudo tee -a /etc/security/limits.conf >/dev/null <<'EOF'
+sonarqube   -   nofile   131072
+sonarqube   -   nproc    8192
+EOF
+sudo useradd -r -s /bin/false sonarqube
+cd /opt
+sudo wget  https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-25.8.0.112029.zip
+sudo unzip sonarqube-25.8.0.112029
+sudo mv sonarqube-25.8.0.112029 sonarqube
+sudo sed -i 's|#sonar.jdbc.username=.*|sonar.jdbc.username=sonar|' /opt/sonarqube/conf/sonar.properties
+sudo sed -i 's|#sonar.jdbc.password=.*|sonar.jdbc.password=StrongPass#123|' /opt/sonarqube/conf/sonar.properties
+sudo sed -i 's|#sonar.jdbc.url=jdbc:postgresql.*|sonar.jdbc.url=jdbc:postgresql://localhost:5432/sonarqube|' /opt/sonarqube/conf/sonar.properties
+sudo tee /etc/systemd/system/sonarqube.service >/dev/null <<'EOF'
+[Unit]
+Description=SonarQube service
+After=network.target
+
+[Service]
+Type=simple
+User=sonarqube
+Group=sonarqube
+ExecStart=/opt/sonarqube/bin/linux-x86-64/sonar.sh start
+ExecStop=/opt/sonarqube/bin/linux-x86-64/sonar.sh stop
+RemainAfterExit=yes
+LimitNOFILE=131072
+LimitNPROC=8192
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl start sonarqube
+sudo systemctl enable sonarqube
+sudo systemctl status sonarqube
