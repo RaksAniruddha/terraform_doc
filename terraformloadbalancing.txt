@@ -1,0 +1,12 @@
+ resource "aws_lb" "simple" {
+  name               = "simple-lb"
+  load_balancer_type = "application"
+  internal           = false
+
+  # Replace with your subnet IDs
+  subnets = [
+    "subnet-0030743d7b0f8cabc",
+    "subnet-0eb4819b0ab5ae878"
+  ]
+}
+~      
