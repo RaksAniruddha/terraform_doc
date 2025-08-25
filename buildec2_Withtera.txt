@@ -1,9 +1,21 @@
-resource "aws_instance" "terraform_unique_id" {
-  ami           = "ami-0f918f7e67a3323f0"
-  instance_type = "t3.micro"
+provider "aws" {
+  region = "ap-south-1"
+  access_key = ""
+  secret_key = ""
+}
+
+resource "aws_instance" "jenkins_work" {
+  ami = " "
+  instance_type = "c7i-flex.large"
   count = 2
-  security_groups = ["aniruddha_sequrity"]
+  key_name = "JK-Tomcat-kp"
+  security_groups = [ "jenkins-node-prac" ]
+  root_block_device {
+    volume_size = 30
+    volume_type = "gp3"
+    delete_on_termination = true
+  }
   tags = {
-    Name = "is_my_instance"
+    Name ="Jenkins_file"
   }
 }
